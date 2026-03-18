@@ -9,7 +9,7 @@ namespace Clicker {
 
         private Label count_label;
         private Label cps_label;
-        private Entry command_entry;
+        private DebugWindow debug_window;
         private Upgrade[] upgrades;
 
         public Window (Adw.Application app) {
@@ -79,15 +79,6 @@ namespace Clicker {
  
             init_upgrades (upgrade_list);
 
-            command_entry = new Entry ();
-            command_entry.placeholder_text = "Debug Console...";
-            command_entry.margin_top = 12;
-            command_entry.visible = false;
-            command_entry.activate.connect (() => {
-                on_command_activated (command_entry);
-            });
-            sidebar_box.append (command_entry);
-
             main_box.append (click_panel);
             main_box.append (new Separator (Orientation.VERTICAL));
             main_box.append (sidebar_box);
@@ -95,16 +86,16 @@ namespace Clicker {
             // F11 Toggle for console via Action
             var action = new SimpleAction ("toggle-console", null);
             action.activate.connect (() => {
-                command_entry.visible = !command_entry.visible;
-                if (command_entry.visible) {
-                    command_entry.grab_focus ();
+                if (debug_window == null) {
+                    debug_window = new DebugWindow (this);
                 }
+                debug_window.present ();
             });
             this.add_action (action);
 
             var controller = new ShortcutController ();
             var trigger = ShortcutTrigger.parse_string ("F11");
-            var shortcut_action = ShortcutAction.parse_string ("win.toggle-console");
+            var shortcut_action = ShortcutAction.parse_string ("action(win.toggle-console)");
             var shortcut = new Shortcut (trigger, shortcut_action);
             controller.add_shortcut (shortcut);
             this.add_controller (controller);
@@ -150,8 +141,8 @@ namespace Clicker {
             }
         }
 
-        private void on_command_activated (Entry entry) {
-            string cmd = entry.text.strip ();
+        public void execute_command (string cmd_in) {
+            var cmd = cmd_in.strip ();
             stdout.printf ("Debug Console: Executing command: %s\n", cmd);
             
             if (cmd.has_prefix ("/")) {
@@ -173,7 +164,6 @@ namespace Clicker {
                     update_labels ();
                 }
             }
-            entry.text = "";
         }
 
         private void on_click_clicked () {
@@ -235,6 +225,33 @@ namespace Clicker {
 
         public void update () {
             buy_button.set_label ("Buy (%d)".printf (upgrade.get_current_cost ()));
+        }
+    }
+
+    public class DebugWindow : Gtk.Window {
+        private Window main_window;
+        private Entry entry;
+
+        public DebugWindow (Window main) {
+            Object (title: "Debug Console", transient_for: main, modal: false);
+            this.main_window = main;
+            this.set_default_size (300, 100);
+
+            var box = new Box (Orientation.VERTICAL, 12);
+            box.margin_top = 12;
+            box.margin_bottom = 12;
+            box.margin_start = 12;
+            box.margin_end = 12;
+
+            entry = new Entry ();
+            entry.placeholder_text = "Enter command...";
+            entry.activate.connect (() => {
+                main_window.execute_command (entry.text);
+                entry.text = "";
+            });
+
+            box.append (entry);
+            this.set_child (box);
         }
     }
 }
