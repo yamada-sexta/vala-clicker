@@ -40,6 +40,12 @@ namespace Clicker {
             var header = new Adw.HeaderBar ();
             toolbar_view.add_top_bar (header);
 
+            var about_button = new Button ();
+            about_button.icon_name = "help-about-symbolic";
+            about_button.tooltip_text = "About Vala Clicker";
+            about_button.clicked.connect (show_about);
+            header.pack_end (about_button);
+
             var main_box = new Box (Orientation.HORIZONTAL, 0);
             toolbar_view.set_content (main_box);
 
@@ -132,6 +138,20 @@ namespace Clicker {
             });
             
             print ("Window initialized successfully\n");
+        }
+
+        private void show_about () {
+            var about = new Adw.AboutWindow () {
+                application_name = "Vala Clicker",
+                developer_name = "Yamada",
+                license_type = Gtk.License.GPL_3_0_ONLY,
+                comments = "A fancy clicker game built with Vala and Libadwaita.",
+                website = "https://github.com/yamada/vala-clicker",
+                copyright = "© 2026 Yamada",
+                transient_for = this,
+                modal = true
+            };
+            about.present ();
         }
 
         private void init_upgrades (Box container) {
