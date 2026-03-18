@@ -174,7 +174,7 @@ namespace Clicker {
                 developer_name = "Yamada",
                 license_type = Gtk.License.LGPL_3_0_ONLY,
                 comments = "A clicker game built with Vala and Libadwaita.",
-                website = "https://github.com/yamada/vala-clicker",
+                website = "https://github.com/yamada-sexta/vala-clicker",
                 copyright = "© 2026 Yamada",
                 application_icon = "com.github.yamada.vala-clicker"
             };
