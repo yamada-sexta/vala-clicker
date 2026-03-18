@@ -36,11 +36,17 @@ namespace Clicker {
 
             count_label = new Label (count.to_string ());
             count_label.set_css_classes ({"title-1", "numeric"});
+            count_label.margin_top = 32;
+            count_label.margin_bottom = 32;
 
             cps_label = new Label ("0 CPS");
             cps_label.add_css_class ("caption");
 
-            var click_button = new Button.with_label ("Click Me!");
+            var click_button = new Button ();
+            var content = new Adw.ButtonContent ();
+            content.icon_name = "list-add-symbolic";
+            content.label = "Click Me!";
+            click_button.set_child (content);
             click_button.add_css_class ("suggested-action");
             click_button.add_css_class ("pill");
             click_button.set_size_request (150, 150);
