@@ -1,5 +1,6 @@
 using Gtk;
 using Adw;
+using Gdk;
 
 namespace Clicker {
     public class Window : Adw.ApplicationWindow {
@@ -11,6 +12,7 @@ namespace Clicker {
         private Label cps_label;
         private DebugWindow debug_window;
         private Upgrade[] upgrades;
+        private UpgradeRow[] upgrade_rows = {};
 
         public Window (Adw.Application app) {
             Object (application: app, title: "Vala Clicker");
@@ -93,12 +95,15 @@ namespace Clicker {
             });
             this.add_action (action);
 
-            var controller = new ShortcutController ();
-            var trigger = ShortcutTrigger.parse_string ("F11");
-            var shortcut_action = ShortcutAction.parse_string ("action(win.toggle-console)");
-            var shortcut = new Shortcut (trigger, shortcut_action);
-            controller.add_shortcut (shortcut);
-            this.add_controller (controller);
+            var key_controller = new EventControllerKey ();
+            key_controller.key_pressed.connect ((keyval, keycode, state) => {
+                if (keyval == Gdk.Key.F11) {
+                    this.activate_action ("toggle-console", null);
+                    return true;
+                }
+                return false;
+            });
+            toolbar_view.add_controller (key_controller);
 
             // Auto-click timer (every 100ms for smoothness)
             Timeout.add (100, () => {
@@ -112,11 +117,26 @@ namespace Clicker {
         }
 
         private void init_upgrades (Box container) {
-            upgrades = {
-                new Upgrade ("Auto Clicker", "Clicks once per second", 15, 1.15, UpgradeType.AUTO_CLICK, 1.0),
-                new Upgrade ("Better Mouse", "Gain +1 click power", 50, 1.5, UpgradeType.CLICK_MULTIPLIER, 1.0),
-                new Upgrade ("Mega Clicker", "Adds 10 clicks per second", 100, 1.15, UpgradeType.AUTO_CLICK, 10.0)
-            };
+            var auto_clicker = new Upgrade ("Auto Clicker", "Clicks once per second", 15, 1.15, UpgradeType.AUTO_CLICK, 1.0);
+            var better_mouse = new Upgrade ("Better Mouse", "Gain +1 click power", 50, 1.5, UpgradeType.CLICK_MULTIPLIER, 1.0);
+            
+            var cursor_farm = new Upgrade ("Cursor Farm", "Adds 5 clicks per second", 150, 1.15, UpgradeType.AUTO_CLICK, 5.0, {
+                new Requirement (auto_clicker, 10)
+            });
+
+            var click_lab = new Upgrade ("Click Laboratory", "Gain +5 click power", 400, 1.5, UpgradeType.CLICK_MULTIPLIER, 5.0, {
+                new Requirement (better_mouse, 5)
+            });
+
+            var robot_army = new Upgrade ("Robot Army", "Adds 25 clicks per second", 1000, 1.15, UpgradeType.AUTO_CLICK, 25.0, {
+                new Requirement (cursor_farm, 10)
+            });
+
+            var quantum_mouse = new Upgrade ("Quantum Mouse", "Gain +50 click power", 5000, 1.5, UpgradeType.CLICK_MULTIPLIER, 50.0, {
+                new Requirement (click_lab, 5)
+            });
+
+            upgrades = { auto_clicker, better_mouse, cursor_farm, click_lab, robot_army, quantum_mouse };
 
             foreach (var upgrade in upgrades) {
                 var row = new UpgradeRow (upgrade);
@@ -125,11 +145,16 @@ namespace Clicker {
                         count -= upgrade.get_current_cost ();
                         upgrade.purchase ();
                         apply_upgrade (upgrade);
-                        row.update ();
+                        
+                        foreach (var r in upgrade_rows) {
+                            r.update ();
+                        }
                         update_labels ();
                     }
                 });
                 container.append (row);
+                upgrade_rows += row;
+                row.update (); // Initial visibility check
             }
         }
 
@@ -191,6 +216,7 @@ namespace Clicker {
 
     public class UpgradeRow : Box {
         private Upgrade upgrade;
+        private Label level_label;
         private Button buy_button;
 
         public signal void purchased ();
@@ -204,9 +230,19 @@ namespace Clicker {
             this.set_margin_start (8);
             this.set_margin_end (8);
 
+            var title_box = new Box (Orientation.HORIZONTAL, 8);
             var title_label = new Label (upgrade.name);
             title_label.set_halign (Align.START);
+            title_label.set_hexpand (true);
             title_label.add_css_class ("bold");
+
+            level_label = new Label ("Lv 0");
+            level_label.set_halign (Align.END);
+            level_label.add_css_class ("caption");
+            level_label.add_css_class ("dim-label");
+
+            title_box.append (title_label);
+            title_box.append (level_label);
 
             var desc_label = new Label (upgrade.description);
             desc_label.set_halign (Align.START);
@@ -218,13 +254,15 @@ namespace Clicker {
                 purchased ();
             });
 
-            this.append (title_label);
+            this.append (title_box);
             this.append (desc_label);
             this.append (buy_button);
         }
 
         public void update () {
             buy_button.set_label ("Buy (%d)".printf (upgrade.get_current_cost ()));
+            level_label.set_label ("Lv %d".printf (upgrade.level));
+            this.visible = upgrade.is_unlocked ();
         }
     }
 

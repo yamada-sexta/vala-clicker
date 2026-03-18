@@ -4,6 +4,19 @@ namespace Clicker {
         CLICK_MULTIPLIER
     }
 
+    public class Requirement : Object {
+        public Upgrade required_upgrade { get; construct; }
+        public int required_level { get; construct; }
+
+        public Requirement (Upgrade upgrade, int level) {
+            Object (required_upgrade: upgrade, required_level: level);
+        }
+
+        public bool is_met () {
+            return required_upgrade.level >= required_level;
+        }
+    }
+
     public class Upgrade : Object {
         public string name { get; set; }
         public string description { get; set; }
@@ -13,8 +26,9 @@ namespace Clicker {
         public double value { get; set; }
 
         public int level { get; private set; default = 0; }
+        public Requirement[] requirements;
 
-        public Upgrade (string name, string description, int base_cost, double cost_multiplier, UpgradeType type, double value) {
+        public Upgrade (string name, string description, int base_cost, double cost_multiplier, UpgradeType type, double value, Requirement[] requirements = {}) {
             Object (
                 name: name,
                 description: description,
@@ -23,6 +37,7 @@ namespace Clicker {
                 upgrade_type: type,
                 value: value
             );
+            this.requirements = requirements;
         }
 
         public int get_current_cost () {
@@ -31,6 +46,15 @@ namespace Clicker {
 
         public void purchase () {
             level++;
+        }
+
+        public bool is_unlocked () {
+            foreach (var req in requirements) {
+                if (!req.is_met ()) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }
