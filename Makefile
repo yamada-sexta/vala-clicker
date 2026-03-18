@@ -11,7 +11,10 @@ compile:
 run: compile
 	./$(BUILDDIR)/src/vala-clicker
 
-clean:
-	rm -rf $(BUILDDIR)
+flatpak:
+	./build-flatpak.sh
 
-.PHONY: all setup compile run clean
+clean:
+	rm -rf $(BUILDDIR) flatpak-build .flatpak-builder
+
+.PHONY: all setup compile run clean flatpak

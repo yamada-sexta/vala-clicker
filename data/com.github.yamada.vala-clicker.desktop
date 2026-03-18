@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Vala Clicker
+Comment=A simple clicker game made with Vala
+Exec=vala-clicker
+Icon=com.github.yamada.vala-clicker
+Terminal=false
+Type=Application
+Categories=Game;
+ID=com.github.yamada.vala-clicker

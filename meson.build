@@ -5,4 +5,8 @@ project('vala-clicker', 'vala', 'c',
 
 gnome = import('gnome')
 
+install_data('data/com.github.yamada.vala-clicker.desktop',
+  install_dir: get_option('datadir') / 'applications'
+)
+
 subdir('src')
