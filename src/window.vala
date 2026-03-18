@@ -68,6 +68,9 @@ namespace Clicker {
             });
             this.add_action (about_action);
 
+            app.set_accels_for_action ("win.shortcuts", {"<Primary>question"});
+            app.set_accels_for_action ("win.help", {"F1"});
+
             var main_box = new Box (Orientation.HORIZONTAL, 0);
             toolbar_view.set_content (main_box);
 
