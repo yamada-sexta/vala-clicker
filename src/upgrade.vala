@@ -5,12 +5,12 @@ namespace Clicker {
     }
 
     public class Upgrade : Object {
-        public string name { get; construct; }
-        public string description { get; construct; }
-        public int base_cost { get; construct; }
-        public double cost_multiplier { get; construct; }
-        public UpgradeType upgrade_type { get; construct; }
-        public double value { get; construct; }
+        public string name { get; set; }
+        public string description { get; set; }
+        public int base_cost { get; set; }
+        public double cost_multiplier { get; set; }
+        public UpgradeType upgrade_type { get; set; }
+        public double value { get; set; }
 
         public int level { get; private set; default = 0; }
 

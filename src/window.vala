@@ -9,7 +9,8 @@ namespace Clicker {
 
         private Label count_label;
         private Label cps_label;
-        private GenericArray<Upgrade> upgrades;
+        private Entry command_entry;
+        private Upgrade[] upgrades;
 
         public Window (Adw.Application app) {
             Object (application: app, title: "Vala Clicker");
@@ -35,7 +36,8 @@ namespace Clicker {
             click_panel.set_valign (Align.CENTER);
 
             count_label = new Label (count.to_string ());
-            count_label.set_css_classes ({"title-1", "numeric"});
+            count_label.add_css_class ("title-1");
+            count_label.add_css_class ("numeric");
             count_label.margin_top = 32;
             count_label.margin_bottom = 32;
 
@@ -56,30 +58,56 @@ namespace Clicker {
             click_panel.append (cps_label);
             click_panel.append (click_button);
 
-            // Right panel: Upgrades
-            var upgrade_panel = new Box (Orientation.VERTICAL, 12);
-            upgrade_panel.width_request = 250;
-            upgrade_panel.set_margin_top (12);
-            upgrade_panel.set_margin_bottom (12);
-            upgrade_panel.set_margin_start (12);
-            upgrade_panel.set_margin_end (12);
+            // Right panel: Upgrades & Console
+            var sidebar_box = new Box (Orientation.VERTICAL, 12);
+            sidebar_box.width_request = 250;
+            sidebar_box.set_margin_top (12);
+            sidebar_box.set_margin_bottom (12);
+            sidebar_box.set_margin_start (12);
+            sidebar_box.set_margin_end (12);
+ 
+             var upgrade_title = new Label ("Upgrades");
+             upgrade_title.add_css_class ("title-4");
+             sidebar_box.append (upgrade_title);
+ 
+             var scrolled = new ScrolledWindow ();
+             scrolled.set_vexpand (true);
+             sidebar_box.append (scrolled);
+ 
+             var upgrade_list = new Box (Orientation.VERTICAL, 6);
+             scrolled.set_child (upgrade_list);
+ 
+            init_upgrades (upgrade_list);
 
-            var upgrade_title = new Label ("Upgrades");
-            upgrade_title.add_css_class ("title-4");
-            upgrade_panel.append (upgrade_title);
-
-            var scrolled = new ScrolledWindow ();
-            scrolled.set_vexpand (true);
-            upgrade_panel.append (scrolled);
-
-            var upgrade_list = new Box (Orientation.VERTICAL, 6);
-            scrolled.set_child (upgrade_list);
+            command_entry = new Entry ();
+            command_entry.placeholder_text = "Debug Console...";
+            command_entry.margin_top = 12;
+            command_entry.visible = false;
+            command_entry.activate.connect (() => {
+                on_command_activated (command_entry);
+            });
+            sidebar_box.append (command_entry);
 
             main_box.append (click_panel);
             main_box.append (new Separator (Orientation.VERTICAL));
-            main_box.append (upgrade_panel);
+            main_box.append (sidebar_box);
 
-            init_upgrades (upgrade_list);
+            // F11 Toggle for console via Action
+            var action = new SimpleAction ("toggle-console", null);
+            action.activate.connect (() => {
+                command_entry.visible = !command_entry.visible;
+                if (command_entry.visible) {
+                    command_entry.grab_focus ();
+                }
+            });
+            this.add_action (action);
+
+            var controller = new ShortcutController ();
+            var trigger = ShortcutTrigger.parse_string ("F11");
+            var shortcut_action = ShortcutAction.parse_string ("win.toggle-console");
+            var shortcut = new Shortcut (trigger, shortcut_action);
+            controller.add_shortcut (shortcut);
+            this.add_controller (controller);
 
             // Auto-click timer (every 100ms for smoothness)
             Timeout.add (100, () => {
@@ -88,52 +116,30 @@ namespace Clicker {
                 }
                 return true;
             });
+            
+            print ("Window initialized successfully\n");
         }
 
         private void init_upgrades (Box container) {
-            upgrades = new GenericArray<Upgrade> ();
-            upgrades.add (new Upgrade ("Auto Clicker", "Clicks once per second", 15, 1.15, UpgradeType.AUTO_CLICK, 1.0));
-            upgrades.add (new Upgrade ("Better Mouse", "Gain +1 click power", 50, 1.5, UpgradeType.CLICK_MULTIPLIER, 1.0));
-            upgrades.add (new Upgrade ("Mega Clicker", "Adds 10 clicks per second", 100, 1.15, UpgradeType.AUTO_CLICK, 10.0));
+            upgrades = {
+                new Upgrade ("Auto Clicker", "Clicks once per second", 15, 1.15, UpgradeType.AUTO_CLICK, 1.0),
+                new Upgrade ("Better Mouse", "Gain +1 click power", 50, 1.5, UpgradeType.CLICK_MULTIPLIER, 1.0),
+                new Upgrade ("Mega Clicker", "Adds 10 clicks per second", 100, 1.15, UpgradeType.AUTO_CLICK, 10.0)
+            };
 
             foreach (var upgrade in upgrades) {
-                var row = create_upgrade_row (upgrade);
+                var row = new UpgradeRow (upgrade);
+                row.purchased.connect (() => {
+                    if (count >= upgrade.get_current_cost ()) {
+                        count -= upgrade.get_current_cost ();
+                        upgrade.purchase ();
+                        apply_upgrade (upgrade);
+                        row.update ();
+                        update_labels ();
+                    }
+                });
                 container.append (row);
             }
-        }
-
-        private Widget create_upgrade_row (Upgrade upgrade) {
-            var box = new Box (Orientation.VERTICAL, 4);
-            box.set_margin_top (8);
-            box.set_margin_bottom (8);
-            box.set_margin_start (8);
-            box.set_margin_end (8);
-
-            var title_label = new Label (upgrade.name);
-            title_label.set_halign (Align.START);
-            title_label.add_css_class ("bold");
-
-            var desc_label = new Label (upgrade.description);
-            desc_label.set_halign (Align.START);
-            desc_label.add_css_class ("caption");
-            desc_label.set_wrap (true);
-
-            var buy_button = new Button.with_label ("Buy (%d)".printf (upgrade.get_current_cost ()));
-            buy_button.clicked.connect (() => {
-                if (count >= upgrade.get_current_cost ()) {
-                    count -= upgrade.get_current_cost ();
-                    upgrade.purchase ();
-                    apply_upgrade (upgrade);
-                    buy_button.set_label ("Buy (%d)".printf (upgrade.get_current_cost ()));
-                    update_labels ();
-                }
-            });
-
-            box.append (title_label);
-            box.append (desc_label);
-            box.append (buy_button);
-
-            return box;
         }
 
         private void apply_upgrade (Upgrade upgrade) {
@@ -142,6 +148,32 @@ namespace Clicker {
             } else if (upgrade.upgrade_type == UpgradeType.CLICK_MULTIPLIER) {
                 click_power += (int) upgrade.value;
             }
+        }
+
+        private void on_command_activated (Entry entry) {
+            string cmd = entry.text.strip ();
+            stdout.printf ("Debug Console: Executing command: %s\n", cmd);
+            
+            if (cmd.has_prefix ("/")) {
+                var parts = cmd.substring (1).split (" ");
+                if (parts.length >= 2 && parts[0] == "add_clicks") {
+                    int amount = int.parse (parts[1]);
+                    count += amount;
+                    update_labels ();
+                } else if (parts.length >= 2 && parts[0] == "set_cps") {
+                    clicks_per_second = double.parse (parts[1]);
+                    update_labels ();
+                } else if (parts[0] == "reset") {
+                    count = 0;
+                    clicks_per_second = 0;
+                    click_power = 1;
+                    foreach (var upgrade in upgrades) {
+                        // Resetting upgrades would need level reset in Upgrade class
+                    }
+                    update_labels ();
+                }
+            }
+            entry.text = "";
         }
 
         private void on_click_clicked () {
@@ -160,8 +192,49 @@ namespace Clicker {
         }
 
         private void update_labels () {
-            count_label.set_label (count.to_string ());
-            cps_label.set_label ("%.1f CPS".printf (clicks_per_second));
+            if (count_label != null)
+                count_label.set_label (count.to_string ());
+            if (cps_label != null)
+                cps_label.set_label ("%.1f CPS".printf (clicks_per_second));
+        }
+    }
+
+    public class UpgradeRow : Box {
+        private Upgrade upgrade;
+        private Button buy_button;
+
+        public signal void purchased ();
+
+        public UpgradeRow (Upgrade upgrade) {
+            Object (orientation: Orientation.VERTICAL, spacing: 4);
+            this.upgrade = upgrade;
+
+            this.set_margin_top (8);
+            this.set_margin_bottom (8);
+            this.set_margin_start (8);
+            this.set_margin_end (8);
+
+            var title_label = new Label (upgrade.name);
+            title_label.set_halign (Align.START);
+            title_label.add_css_class ("bold");
+
+            var desc_label = new Label (upgrade.description);
+            desc_label.set_halign (Align.START);
+            desc_label.add_css_class ("caption");
+            desc_label.set_wrap (true);
+
+            buy_button = new Button.with_label ("Buy (%d)".printf (upgrade.get_current_cost ()));
+            buy_button.clicked.connect (() => {
+                purchased ();
+            });
+
+            this.append (title_label);
+            this.append (desc_label);
+            this.append (buy_button);
+        }
+
+        public void update () {
+            buy_button.set_label ("Buy (%d)".printf (upgrade.get_current_cost ()));
         }
     }
 }
