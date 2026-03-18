@@ -3,6 +3,7 @@ dependencies = [
   dependency('gobject-2.0'),
   dependency('gtk4'),
   dependency('libadwaita-1'),
+  dependency('gio-2.0'),
   meson.get_compiler('c').find_library('m', required: false),
 ]
 
