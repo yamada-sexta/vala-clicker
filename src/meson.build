@@ -10,11 +10,15 @@ dependencies = [
 sources = files(
   'main.vala',
   'window.vala',
-  'upgrade.vala',
+  'progression.vala',
 )
 
 executable('vala-clicker',
   sources,
-  dependencies: dependencies,
+  dependencies: [
+    dependency('gtk4'),
+    dependency('libadwaita-1'),
+    meson.get_compiler('c').find_library('m', required: false),
+  ],
   install: true,
 )

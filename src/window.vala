@@ -4,20 +4,19 @@ using Gdk;
 
 namespace Clicker {
     public class Window : Adw.ApplicationWindow {
-        private int count = 0;
-        private double clicks_per_second = 0.0;
-        private int click_power = 1;
-
+        private Progression progression;
+        private UpgradeRow[] upgrade_rows;
         private Label count_label;
         private Label cps_label;
-        private Overlay click_overlay;
+        private Label level_label;
+        private ProgressBar xp_bar;
         private Button click_button;
+        private Overlay click_overlay;
+        private Fixed click_effects_fixed;
         private DebugWindow debug_window;
-        private Upgrade[] upgrades;
-        private UpgradeRow[] upgrade_rows = {};
 
         public Window (Adw.Application app) {
-            Object (application: app, title: "Vala Clicker");
+            Object (application: app, title: "Vala Clicker", icon_name: "com.github.yamada.vala-clicker");
 
             this.set_default_size (600, 400);
 
@@ -67,16 +66,31 @@ namespace Clicker {
             click_panel.set_margin_end (48);
             click_panel.set_valign (Align.CENTER);
 
-            count_label = new Label (count.to_string ());
+            progression = new Progression ();
+            progression.updated.connect (update_labels);
+            progression.leveled_up.connect (on_leveled_up);
+
+            count_label = new Label ("0");
             count_label.add_css_class ("title-1");
             count_label.add_css_class ("numeric");
-            count_label.margin_top = 32;
-            count_label.margin_bottom = 32;
+            count_label.margin_top = 16;
+
+            level_label = new Label ("Level 1");
+            level_label.add_css_class ("title-4");
+            level_label.add_css_class ("dim-label");
+
+            xp_bar = new ProgressBar ();
+            xp_bar.set_margin_start (48);
+            xp_bar.set_margin_end (48);
+            xp_bar.set_fraction (0.0);
 
             cps_label = new Label ("0 CPS");
             cps_label.add_css_class ("caption");
+            cps_label.margin_bottom = 24;
 
+            click_panel.append (level_label);
             click_panel.append (count_label);
+            click_panel.append (xp_bar);
             click_panel.append (cps_label);
 
             click_overlay = new Overlay ();
@@ -91,6 +105,11 @@ namespace Clicker {
             click_button.clicked.connect (on_click_clicked);
 
             click_overlay.set_child (click_button);
+
+            click_effects_fixed = new Fixed ();
+            click_effects_fixed.can_target = false;
+            click_overlay.add_overlay (click_effects_fixed);
+
             click_panel.append (click_overlay);
 
             // Right panel: Upgrades & Console
@@ -140,8 +159,8 @@ namespace Clicker {
 
             // Auto-click timer (every 100ms for smoothness)
             Timeout.add (100, () => {
-                if (clicks_per_second > 0) {
-                    add_clicks (clicks_per_second / 10.0);
+                if (progression.clicks_per_second > 0) {
+                    progression.add_clicks (progression.clicks_per_second / 10.0);
                 }
                 return true;
             });
@@ -163,52 +182,17 @@ namespace Clicker {
         }
 
         private void init_upgrades (Box container) {
-            var auto_clicker = new Upgrade ("Auto Clicker", "Clicks once per second", 15, 1.15, UpgradeType.AUTO_CLICK, 1.0);
-            var better_mouse = new Upgrade ("Better Mouse", "Gain +1 click power", 50, 1.5, UpgradeType.CLICK_MULTIPLIER, 1.0);
-            
-            var cursor_farm = new Upgrade ("Cursor Farm", "Adds 5 clicks per second", 150, 1.15, UpgradeType.AUTO_CLICK, 5.0, {
-                new Requirement (auto_clicker, 10)
-            });
-
-            var click_lab = new Upgrade ("Click Laboratory", "Gain +5 click power", 400, 1.5, UpgradeType.CLICK_MULTIPLIER, 5.0, {
-                new Requirement (better_mouse, 5)
-            });
-
-            var robot_army = new Upgrade ("Robot Army", "Adds 25 clicks per second", 1000, 1.15, UpgradeType.AUTO_CLICK, 25.0, {
-                new Requirement (cursor_farm, 10)
-            });
-
-            var quantum_mouse = new Upgrade ("Quantum Mouse", "Gain +50 click power", 5000, 1.5, UpgradeType.CLICK_MULTIPLIER, 50.0, {
-                new Requirement (click_lab, 5)
-            });
-
-            upgrades = { auto_clicker, better_mouse, cursor_farm, click_lab, robot_army, quantum_mouse };
-
-            foreach (var upgrade in upgrades) {
+            foreach (var upgrade in progression.upgrades) {
                 var row = new UpgradeRow (upgrade);
                 row.purchased.connect (() => {
-                    if (count >= upgrade.get_current_cost ()) {
-                        count -= upgrade.get_current_cost ();
-                        upgrade.purchase ();
-                        apply_upgrade (upgrade);
-                        
-                        foreach (var r in upgrade_rows) {
-                            r.update ();
-                        }
-                        update_labels ();
+                    progression.purchase_upgrade (upgrade);
+                    foreach (var r in upgrade_rows) {
+                        r.update (progression.level);
                     }
                 });
                 container.append (row);
                 upgrade_rows += row;
-                row.update (); // Initial visibility check
-            }
-        }
-
-        private void apply_upgrade (Upgrade upgrade) {
-            if (upgrade.upgrade_type == UpgradeType.AUTO_CLICK) {
-                clicks_per_second += upgrade.value;
-            } else if (upgrade.upgrade_type == UpgradeType.CLICK_MULTIPLIER) {
-                click_power += (int) upgrade.value;
+                row.update (progression.level);
             }
         }
 
@@ -217,30 +201,24 @@ namespace Clicker {
             stdout.printf ("Debug Console: Executing command: %s\n", cmd);
             
             if (cmd.has_prefix ("/")) {
-                var parts = cmd.substring (1).split (" ");
-                if (parts.length >= 2 && parts[0] == "add_clicks") {
-                    int amount = int.parse (parts[1]);
-                    count += amount;
-                    update_labels ();
-                } else if (parts.length >= 2 && parts[0] == "set_cps") {
-                    clicks_per_second = double.parse (parts[1]);
-                    update_labels ();
-                } else if (parts[0] == "reset") {
-                    count = 0;
-                    clicks_per_second = 0;
-                    click_power = 1;
-                    foreach (var upgrade in upgrades) {
-                        // Resetting upgrades would need level reset in Upgrade class
-                    }
-                    update_labels ();
-                }
+                progression.execute_debug_command (cmd.substring (1));
             }
         }
 
+        private void on_leveled_up (int old_level, int new_level) {
+            spawn_floating_text (0, "LEVEL UP!");
+            // Pulse the level label
+            level_label.add_css_class ("pulse");
+            Timeout.add (500, () => {
+                level_label.remove_css_class ("pulse");
+                return false;
+            });
+        }
+
         private void on_click_clicked () {
-            add_clicks (click_power);
+            progression.add_clicks (progression.click_power, true);
             animate_button ();
-            spawn_floating_text (click_power);
+            spawn_floating_text (progression.click_power);
         }
 
         private void animate_button () {
@@ -251,53 +229,54 @@ namespace Clicker {
             });
         }
 
-        private void spawn_floating_text (int amount) {
-            var label = new Label ("+%d".printf (amount));
+        private void spawn_floating_text (int amount, string? custom_text = null) {
+            var label = new Label (custom_text ?? "+%d".printf (amount));
             label.add_css_class ("title-2");
             label.add_css_class ("accent");
             label.can_target = false;
             
-            click_overlay.add_overlay (label);
+            double start_x = click_button.get_width() / 2 + (Random.next_double () - 0.5) * 60;
+            double start_y = click_button.get_height() / 2;
             
-            double x = (Random.next_double () - 0.5) * 100;
-            label.set_margin_start ((int) x);
+            click_effects_fixed.put (label, start_x, start_y);
 
             var anim = new Adw.TimedAnimation (label, 0, -100, 1000,
                 new Adw.CallbackAnimationTarget ((val) => {
-                    label.set_margin_top ((int) val);
+                    click_effects_fixed.move (label, start_x, start_y + val);
                     label.opacity = (float) (1.0 - (Math.fabs (val) / 100.0));
                 })
             );
             
             anim.done.connect (() => {
-                click_overlay.remove_overlay (label);
+                click_effects_fixed.remove (label);
             });
             
             anim.play ();
         }
 
-        private double partial_clicks = 0.0;
-        private void add_clicks (double val) {
-            partial_clicks += val;
-            if (partial_clicks >= 1.0) {
-                int integral = (int) partial_clicks;
-                count += integral;
-                partial_clicks -= integral;
-                update_labels ();
-            }
-        }
-
         private void update_labels () {
             if (count_label != null) {
-                count_label.set_label (count.to_string ());
+                count_label.set_label ("%d".printf ((int) progression.count));
                 count_label.add_css_class ("pulse");
                 Timeout.add (100, () => {
                     count_label.remove_css_class ("pulse");
                     return false;
                 });
             }
+            if (level_label != null) {
+                level_label.set_label ("Level %d".printf (progression.level));
+            }
+            if (xp_bar != null) {
+                xp_bar.set_fraction (progression.xp / progression.xp_to_next_level);
+            }
             if (cps_label != null)
-                cps_label.set_label ("%.1f CPS".printf (clicks_per_second));
+                cps_label.set_label ("%.1f CPS (x%.2f)".printf (progression.clicks_per_second, progression.global_multiplier));
+            
+            if (upgrade_rows != null) {
+                foreach (var row in upgrade_rows) {
+                    row.update (progression.level);
+                }
+            }
         }
     }
 
@@ -336,7 +315,7 @@ namespace Clicker {
             desc_label.add_css_class ("caption");
             desc_label.set_wrap (true);
 
-            buy_button = new Button.with_label ("Buy (%d)".printf (upgrade.get_current_cost ()));
+            buy_button = new Button.with_label ("Buy (%d)".printf ((int) upgrade.get_current_cost ()));
             buy_button.clicked.connect (() => {
                 purchased ();
             });
@@ -346,10 +325,10 @@ namespace Clicker {
             this.append (buy_button);
         }
 
-        public void update () {
-            buy_button.set_label ("Buy (%d)".printf (upgrade.get_current_cost ()));
+        public void update (int player_level) {
+            buy_button.set_label ("Buy (%d)".printf ((int) upgrade.get_current_cost ()));
             level_label.set_label ("Lv %d".printf (upgrade.level));
-            this.visible = upgrade.is_unlocked ();
+            this.visible = upgrade.is_unlocked (player_level);
         }
     }
 
