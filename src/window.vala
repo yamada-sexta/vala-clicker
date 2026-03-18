@@ -14,6 +14,7 @@ namespace Clicker {
         private Overlay click_overlay;
         private Fixed click_effects_fixed;
         private DebugWindow debug_window;
+        private Gtk.ShortcutsWindow shortcuts_window;
 
         public Window (Adw.Application app) {
             Object (application: app, title: "Vala Clicker", icon_name: "com.github.yamada.vala-clicker");
@@ -43,10 +44,24 @@ namespace Clicker {
             menu_button.icon_name = "open-menu-symbolic";
             
             var menu = new GLib.Menu ();
+            menu.append ("Keyboard Shortcuts", "win.shortcuts");
+            menu.append ("Help", "win.help");
             menu.append ("About Vala Clicker", "win.show-about");
             menu_button.menu_model = menu;
             
             header.pack_end (menu_button);
+
+            var shortcuts_action = new GLib.SimpleAction ("shortcuts", null);
+            shortcuts_action.activate.connect (() => {
+                show_shortcuts ();
+            });
+            this.add_action (shortcuts_action);
+
+            var help_action = new GLib.SimpleAction ("help", null);
+            help_action.activate.connect (() => {
+                show_help ();
+            });
+            this.add_action (help_action);
 
             var about_action = new GLib.SimpleAction ("show-about", null);
             about_action.activate.connect (() => {
@@ -171,6 +186,7 @@ namespace Clicker {
                 return true;
             });
             
+            update_labels ();
             print ("Window initialized successfully\n");
         }
 
@@ -185,6 +201,41 @@ namespace Clicker {
                 application_icon = "com.github.yamada.vala-clicker"
             };
             about.present (this);
+        }
+
+        private void show_help () {
+            var dialog = new Adw.AlertDialog ("Help", "Its a clicker game, click and see what happens.");
+            dialog.add_response ("ok", "OK");
+            dialog.set_default_response ("ok");
+            dialog.present (this);
+        }
+
+        private void show_shortcuts () {
+            if (shortcuts_window == null) {
+                shortcuts_window = (Gtk.ShortcutsWindow) Object.new (typeof (Gtk.ShortcutsWindow));
+                shortcuts_window.set_transient_for (this);
+                shortcuts_window.set_modal (true);
+                shortcuts_window.destroy_with_parent = true;
+
+                var section = (Gtk.ShortcutsSection) Object.new (typeof (Gtk.ShortcutsSection));
+                
+                var group = (Gtk.ShortcutsGroup) Object.new (typeof (Gtk.ShortcutsGroup));
+                group.title = "General";
+
+                var shortcut = (Gtk.ShortcutsShortcut) Object.new (typeof (Gtk.ShortcutsShortcut));
+                shortcut.title = "Toggle Debug Console";
+                shortcut.accelerator = "F11";
+                
+                group.append (shortcut);
+                section.append (group);
+                shortcuts_window.set_child (section);
+
+                shortcuts_window.destroy.connect (() => {
+                    shortcuts_window = null;
+                });
+            }
+            
+            shortcuts_window.present ();
         }
 
         private void init_upgrades (Box container) {

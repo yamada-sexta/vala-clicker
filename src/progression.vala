@@ -66,7 +66,7 @@ namespace Clicker {
         public double total_clicks_ever { get; private set; default = 0.0; }
         public int level { get; private set; default = 1; }
         public double xp { get; private set; default = 0.0; }
-        public double xp_to_next_level { get; private set; default = 100.0; }
+        public double xp_to_next_level { get; private set; default = 50.0; } // Lowered starting XP for a faster early game
 
         public double clicks_per_second { get; private set; default = 0.0; }
         public double click_power { get; private set; default = 1.0; }
@@ -83,6 +83,20 @@ namespace Clicker {
             init_upgrades ();
             load ();
             recalculate_stats ();
+        }
+
+        public string get_rank_title () {
+            // 10 Distinct thematic levels/ranks
+            if (level < 5) return "Mere Mortal";
+            if (level < 10) return "Carpal Tunnel Initiate";
+            if (level < 15) return "Kinetic Harvester";
+            if (level < 20) return "Automation Baron";
+            if (level < 30) return "Silicon Warlord";
+            if (level < 40) return "Neural Architect";
+            if (level < 50) return "Quantum Manipulator";
+            if (level < 65) return "Dimensional Entity";
+            if (level < 80) return "Multiverse Overlord";
+            return "Reality Weaver";
         }
 
         public void save () {
@@ -129,30 +143,50 @@ namespace Clicker {
         }
 
         private void init_upgrades () {
-            var auto_clicker = new Upgrade ("Auto Clicker", "Clicks once per second", 15.0, 1.15, UpgradeType.AUTO_CLICK, 1.0);
-            var better_mouse = new Upgrade ("Better Mouse", "Gain +1 click power", 50.0, 1.5, UpgradeType.CLICK_MULTIPLIER, 1.0);
+            // Tier 1: The Basics
+            var sentient_cursor = new Upgrade ("Sentient Cursor", "A rogue cursor that clicks for you. (+1 CPS)", 15.0, 1.15, UpgradeType.AUTO_CLICK, 1.0);
+            var ergonomic_keycap = new Upgrade ("Ergonomic Keycap", "Fingers don't hurt as much. (+1 Click Power)", 50.0, 1.5, UpgradeType.CLICK_MULTIPLIER, 1.0);
             
-            var cursor_farm = new Upgrade ("Cursor Farm", "Adds 5 clicks per second", 150.0, 1.15, UpgradeType.AUTO_CLICK, 5.0, {
-                new Requirement (auto_clicker, 10)
+            // Tier 2: Biological Enhancement
+            var caffeine_drip = new Upgrade ("Caffeine IV Drip", "Hyperactive clicking. (+5 CPS)", 200.0, 1.15, UpgradeType.AUTO_CLICK, 5.0, {
+                new Requirement (sentient_cursor, 10)
+            });
+            var overclocked_switch = new Upgrade ("Overclocked Switch", "Mechanically superior hardware. (+5 Click Power)", 500.0, 1.5, UpgradeType.CLICK_MULTIPLIER, 5.0, {
+                new Requirement (ergonomic_keycap, 5)
             });
 
-            var click_lab = new Upgrade ("Click Laboratory", "Gain +5 click power", 400.0, 1.5, UpgradeType.CLICK_MULTIPLIER, 5.0, {
-                new Requirement (better_mouse, 5)
+            // Tier 3: Automation Era
+            var bot_swarm = new Upgrade ("AI Click-Bot Swarm", "A neural net designed only to click. (+25 CPS)", 2500.0, 1.15, UpgradeType.AUTO_CLICK, 25.0, {
+                new Requirement (caffeine_drip, 10)
+            });
+            var neural_interface = new Upgrade ("Neural Interface", "Think it, click it. (+20 Click Power)", 6000.0, 1.5, UpgradeType.CLICK_MULTIPLIER, 20.0, {
+                new Requirement (overclocked_switch, 5)
             });
 
-            var robot_army = new Upgrade ("Robot Army", "Adds 25 clicks per second", 1000.0, 1.15, UpgradeType.AUTO_CLICK, 25.0, {
-                new Requirement (cursor_farm, 10)
+            // Tier 4: Quantum Physics
+            var quantum_router = new Upgrade ("Quantum Click Router", "Entangled clicks across networks. (+100 CPS)", 20000.0, 1.15, UpgradeType.AUTO_CLICK, 100.0, {
+                new Requirement (bot_swarm, 10)
+            });
+            var tachyon_mouse = new Upgrade ("Tachyon Mouse", "Clicks before you even move. (+100 Click Power)", 75000.0, 1.6, UpgradeType.CLICK_MULTIPLIER, 100.0, {
+                new Requirement (neural_interface, 5)
             });
 
-            var quantum_mouse = new Upgrade ("Quantum Mouse", "Gain +50 click power", 5000.0, 1.5, UpgradeType.CLICK_MULTIPLIER, 50.0, {
-                new Requirement (click_lab, 5)
+            // Tier 5: Reality Bending
+            var spacetime_distort = new Upgrade ("Space-Time Distortion", "Bends time to fit more clicks. (CPS x1.2)", 200000.0, 2.0, UpgradeType.CPS_MULTIPLIER, 0.2, {
+                new Requirement (quantum_router, 10)
+            });
+            var reality_matrix = new Upgrade ("Reality Bending Matrix", "Reality is just a click simulation. (+1000 CPS)", 1000000.0, 1.15, UpgradeType.AUTO_CLICK, 1000.0, {
+                new Requirement (spacetime_distort, 1)
+            });
+            var multiversal_nexus = new Upgrade ("Multiversal Nexus", "Harnesses clicks from parallel universes. (CPS x1.5)", 15000000.0, 2.5, UpgradeType.CPS_MULTIPLIER, 0.5, {
+                new Requirement (reality_matrix, 10)
             });
 
-            var factory = new Upgrade ("Click Factory", "Multiplies all CPS by 1.2x", 10000.0, 2.0, UpgradeType.CPS_MULTIPLIER, 0.2, {
-                new Requirement (robot_army, 5)
-            });
-
-            upgrades = { auto_clicker, better_mouse, cursor_farm, click_lab, robot_army, quantum_mouse, factory };
+            upgrades = { 
+                sentient_cursor, ergonomic_keycap, caffeine_drip, overclocked_switch, 
+                bot_swarm, neural_interface, quantum_router, tachyon_mouse, 
+                spacetime_distort, reality_matrix, multiversal_nexus 
+            };
         }
 
         public void add_clicks (double val, bool manual = false) {
@@ -160,8 +194,8 @@ namespace Clicker {
             count += amount;
             total_clicks_ever += amount;
             
-            // Gain XP: 10% of click value for manual, 1% for auto
-            add_xp (amount * (manual ? 0.1 : 0.01));
+            // Gain XP: 20% of click value for manual, 5% for auto (makes active play highly rewarding)
+            add_xp (amount * (manual ? 0.2 : 0.05));
             
             updated ();
         }
@@ -171,7 +205,7 @@ namespace Clicker {
             while (xp >= xp_to_next_level) {
                 xp -= xp_to_next_level;
                 level++;
-                xp_to_next_level *= 1.2; // Increase requirement for next level
+                xp_to_next_level *= 1.3; // Steeper curve, but offset by the lower base of 50
                 
                 recalculate_stats ();
                 leveled_up (level - 1, level);
@@ -193,8 +227,8 @@ namespace Clicker {
             double base_power = 1.0;
             double cps_mult = 1.0;
 
-            // Level bonus: 1% global multiplier per level
-            global_multiplier = 1.0 + (level - 1) * 0.01;
+            // Level bonus: 2% global multiplier per level (Increased from 1%)
+            global_multiplier = 1.0 + (level - 1) * 0.02;
 
             foreach (var up in upgrades) {
                 if (up.level > 0) {
@@ -223,14 +257,14 @@ namespace Clicker {
             } else if (parts.length >= 2 && parts[0] == "set_level") {
                 level = int.parse (parts[1]);
                 xp = 0;
-                xp_to_next_level = 100.0 * Math.pow (1.2, level - 1);
+                xp_to_next_level = 50.0 * Math.pow (1.3, level - 1);
                 recalculate_stats ();
             } else if (parts[0] == "reset") {
                 count = 0;
                 total_clicks_ever = 0;
                 level = 1;
                 xp = 0;
-                xp_to_next_level = 100.0;
+                xp_to_next_level = 50.0;
                 foreach (var up in upgrades) up.level = 0;
                 recalculate_stats ();
             }
