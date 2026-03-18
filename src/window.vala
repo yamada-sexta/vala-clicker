@@ -213,15 +213,37 @@ namespace Clicker {
         }
 
         private void show_shortcuts () {
+            // Note: We use &lt; and &gt; to escape the < and > characters in XML
             string ui = """
             <interface>
               <object class="GtkShortcutsWindow" id="shortcuts">
                 <property name="modal">True</property>
                 <child>
                   <object class="GtkShortcutsSection">
+                    <property name="section-name">shortcuts</property>
+                    <property name="max-height">10</property>
+                    
                     <child>
                       <object class="GtkShortcutsGroup">
                         <property name="title">General</property>
+                        <child>
+                          <object class="GtkShortcutsShortcut">
+                            <property name="title">Keyboard Shortcuts</property>
+                            <property name="accelerator">&lt;Primary&gt;question</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkShortcutsShortcut">
+                            <property name="title">Help</property>
+                            <property name="accelerator">F1</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+
+                    <child>
+                      <object class="GtkShortcutsGroup">
+                        <property name="title">Developer</property>
                         <child>
                           <object class="GtkShortcutsShortcut">
                             <property name="title">Toggle Debug Console</property>
@@ -230,6 +252,7 @@ namespace Clicker {
                         </child>
                       </object>
                     </child>
+                    
                   </object>
                 </child>
               </object>
