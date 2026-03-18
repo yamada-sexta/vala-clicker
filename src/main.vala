@@ -10,6 +10,7 @@ namespace Clicker {
     }
 
     protected override void activate () {
+      this.icon_name = "com.github.yamada.vala-clicker";
       var window = this.active_window;
       if (window == null) {
         window = new Window (this);
