@@ -10,6 +10,8 @@ namespace Clicker {
 
         private Label count_label;
         private Label cps_label;
+        private Overlay click_overlay;
+        private Button click_button;
         private DebugWindow debug_window;
         private Upgrade[] upgrades;
         private UpgradeRow[] upgrade_rows = {};
@@ -21,6 +23,19 @@ namespace Clicker {
 
             var toolbar_view = new Adw.ToolbarView ();
             this.set_content (toolbar_view);
+
+            var css_provider = new Gtk.CssProvider ();
+            css_provider.load_from_data ("""
+                .clicked {
+                    transition: transform 0.05s ease-out;
+                    transform: scale(0.95);
+                }
+                .pulse {
+                    transition: transform 0.1s ease-out;
+                    transform: scale(1.1);
+                }
+            """.data);
+            Gtk.StyleContext.add_provider_for_display (Gdk.Display.get_default (), css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
 
             var header = new Adw.HeaderBar ();
             toolbar_view.add_top_bar (header);
@@ -46,7 +61,11 @@ namespace Clicker {
             cps_label = new Label ("0 CPS");
             cps_label.add_css_class ("caption");
 
-            var click_button = new Button ();
+            click_panel.append (count_label);
+            click_panel.append (cps_label);
+
+            click_overlay = new Overlay ();
+            click_button = new Button ();
             var content = new Adw.ButtonContent ();
             content.icon_name = "list-add-symbolic";
             content.label = "Click Me!";
@@ -56,9 +75,8 @@ namespace Clicker {
             click_button.set_size_request (150, 150);
             click_button.clicked.connect (on_click_clicked);
 
-            click_panel.append (count_label);
-            click_panel.append (cps_label);
-            click_panel.append (click_button);
+            click_overlay.set_child (click_button);
+            click_panel.append (click_overlay);
 
             // Right panel: Upgrades & Console
             var sidebar_box = new Box (Orientation.VERTICAL, 12);
@@ -193,6 +211,41 @@ namespace Clicker {
 
         private void on_click_clicked () {
             add_clicks (click_power);
+            animate_button ();
+            spawn_floating_text (click_power);
+        }
+
+        private void animate_button () {
+            click_button.add_css_class ("clicked");
+            Timeout.add (100, () => {
+                click_button.remove_css_class ("clicked");
+                return false;
+            });
+        }
+
+        private void spawn_floating_text (int amount) {
+            var label = new Label ("+%d".printf (amount));
+            label.add_css_class ("title-2");
+            label.add_css_class ("accent");
+            label.can_target = false;
+            
+            click_overlay.add_overlay (label);
+            
+            double x = (Random.next_double () - 0.5) * 100;
+            label.set_margin_start ((int) x);
+
+            var anim = new Adw.TimedAnimation (label, 0, -100, 1000,
+                new Adw.CallbackAnimationTarget ((val) => {
+                    label.set_margin_top ((int) val);
+                    label.opacity = (float) (1.0 - (Math.fabs (val) / 100.0));
+                })
+            );
+            
+            anim.done.connect (() => {
+                click_overlay.remove_overlay (label);
+            });
+            
+            anim.play ();
         }
 
         private double partial_clicks = 0.0;
@@ -207,8 +260,14 @@ namespace Clicker {
         }
 
         private void update_labels () {
-            if (count_label != null)
+            if (count_label != null) {
                 count_label.set_label (count.to_string ());
+                count_label.add_css_class ("pulse");
+                Timeout.add (100, () => {
+                    count_label.remove_css_class ("pulse");
+                    return false;
+                });
+            }
             if (cps_label != null)
                 cps_label.set_label ("%.1f CPS".printf (clicks_per_second));
         }
