@@ -69,7 +69,7 @@ namespace Clicker {
         public double xp_to_next_level { get; private set; default = 100.0; }
 
         public double clicks_per_second { get; private set; default = 0.0; }
-        public int click_power { get; private set; default = 1; }
+        public double click_power { get; private set; default = 1.0; }
         public double global_multiplier { get; private set; default = 1.0; }
 
         public Upgrade[] upgrades { get; private set; }
@@ -144,7 +144,7 @@ namespace Clicker {
 
         public void recalculate_stats () {
             double base_cps = 0.0;
-            int base_power = 1;
+            double base_power = 1.0;
             double cps_mult = 1.0;
 
             // Level bonus: 1% global multiplier per level
@@ -157,7 +157,7 @@ namespace Clicker {
                             base_cps += up.value * up.level;
                             break;
                         case UpgradeType.CLICK_MULTIPLIER:
-                            base_power += (int) (up.value * up.level);
+                            base_power += up.value * up.level;
                             break;
                         case UpgradeType.CPS_MULTIPLIER:
                             cps_mult += up.value * up.level;

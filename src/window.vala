@@ -229,8 +229,8 @@ namespace Clicker {
             });
         }
 
-        private void spawn_floating_text (int amount, string? custom_text = null) {
-            var label = new Label (custom_text ?? "+%d".printf (amount));
+        private void spawn_floating_text (double amount, string? custom_text = null) {
+            var label = new Label (custom_text ?? ("+" + NumberFormatter.format (amount)));
             label.add_css_class ("title-2");
             label.add_css_class ("accent");
             label.can_target = false;
@@ -256,7 +256,7 @@ namespace Clicker {
 
         private void update_labels () {
             if (count_label != null) {
-                count_label.set_label ("%d".printf ((int) progression.count));
+                count_label.set_label (NumberFormatter.format (progression.count));
                 count_label.add_css_class ("pulse");
                 Timeout.add (100, () => {
                     count_label.remove_css_class ("pulse");
@@ -270,7 +270,7 @@ namespace Clicker {
                 xp_bar.set_fraction (progression.xp / progression.xp_to_next_level);
             }
             if (cps_label != null)
-                cps_label.set_label ("%.1f CPS (x%.2f)".printf (progression.clicks_per_second, progression.global_multiplier));
+                cps_label.set_label ("%s CPS (x%.2f)".printf (NumberFormatter.format (progression.clicks_per_second), progression.global_multiplier));
             
             if (upgrade_rows != null) {
                 foreach (var row in upgrade_rows) {
@@ -315,7 +315,7 @@ namespace Clicker {
             desc_label.add_css_class ("caption");
             desc_label.set_wrap (true);
 
-            buy_button = new Button.with_label ("Buy (%d)".printf ((int) upgrade.get_current_cost ()));
+            buy_button = new Button.with_label ("Buy (%s)".printf (NumberFormatter.format (upgrade.get_current_cost ())));
             buy_button.clicked.connect (() => {
                 purchased ();
             });
@@ -326,7 +326,7 @@ namespace Clicker {
         }
 
         public void update (int player_level) {
-            buy_button.set_label ("Buy (%d)".printf ((int) upgrade.get_current_cost ()));
+            buy_button.set_label ("Buy (%s)".printf (NumberFormatter.format (upgrade.get_current_cost ())));
             level_label.set_label ("Lv %d".printf (upgrade.level));
             this.visible = upgrade.is_unlocked (player_level);
         }

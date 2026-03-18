@@ -11,6 +11,7 @@ sources = files(
   'main.vala',
   'window.vala',
   'progression.vala',
+  'utils.vala',
 )
 
 executable('vala-clicker',
