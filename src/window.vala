@@ -164,6 +164,12 @@ namespace Clicker {
                 }
                 return true;
             });
+
+            // Save progression every second
+            Timeout.add (1000, () => {
+                progression.save ();
+                return true;
+            });
             
             print ("Window initialized successfully\n");
         }

@@ -77,9 +77,55 @@ namespace Clicker {
         public signal void updated ();
         public signal void leveled_up (int old_level, int new_level);
 
+        private const string SAVE_FILE = "save.ini";
+
         public Progression () {
             init_upgrades ();
+            load ();
             recalculate_stats ();
+        }
+
+        public void save () {
+            var file = new KeyFile ();
+            file.set_double ("Player", "count", count);
+            file.set_double ("Player", "total_clicks_ever", total_clicks_ever);
+            file.set_integer ("Player", "level", level);
+            file.set_double ("Player", "xp", xp);
+            file.set_double ("Player", "xp_to_next_level", xp_to_next_level);
+
+            foreach (var up in upgrades) {
+                file.set_integer ("Upgrades", up.name, up.level);
+            }
+
+            try {
+                FileUtils.set_contents (SAVE_FILE, file.to_data ());
+            } catch (Error e) {
+                stderr.printf ("Error saving game: %s\n", e.message);
+            }
+        }
+
+        public void load () {
+            if (!FileUtils.test (SAVE_FILE, FileTest.EXISTS)) {
+                return;
+            }
+
+            var file = new KeyFile ();
+            try {
+                file.load_from_file (SAVE_FILE, KeyFileFlags.NONE);
+                count = file.get_double ("Player", "count");
+                total_clicks_ever = file.get_double ("Player", "total_clicks_ever");
+                level = file.get_integer ("Player", "level");
+                xp = file.get_double ("Player", "xp");
+                xp_to_next_level = file.get_double ("Player", "xp_to_next_level");
+
+                foreach (var up in upgrades) {
+                    if (file.has_key ("Upgrades", up.name)) {
+                        up.level = file.get_integer ("Upgrades", up.name);
+                    }
+                }
+            } catch (Error e) {
+                stderr.printf ("Error loading game: %s\n", e.message);
+            }
         }
 
         private void init_upgrades () {
