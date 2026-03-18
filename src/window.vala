@@ -14,7 +14,6 @@ namespace Clicker {
         private Overlay click_overlay;
         private Fixed click_effects_fixed;
         private DebugWindow debug_window;
-        private Gtk.ShortcutsWindow shortcuts_window;
 
         public Window (Adw.Application app) {
             Object (application: app, title: "Vala Clicker", icon_name: "com.github.yamada.vala-clicker");
@@ -25,7 +24,7 @@ namespace Clicker {
             this.set_content (toolbar_view);
 
             var css_provider = new Gtk.CssProvider ();
-            css_provider.load_from_data ("""
+            css_provider.load_from_string ("""
                 .clicked {
                     transition: transform 0.05s ease-out;
                     transform: scale(0.95);
@@ -34,7 +33,7 @@ namespace Clicker {
                     transition: transform 0.1s ease-out;
                     transform: scale(1.1);
                 }
-            """.data);
+            """);
             Gtk.StyleContext.add_provider_for_display (Gdk.Display.get_default (), css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
 
             var header = new Adw.HeaderBar ();
@@ -211,31 +210,37 @@ namespace Clicker {
         }
 
         private void show_shortcuts () {
-            if (shortcuts_window == null) {
-                shortcuts_window = (Gtk.ShortcutsWindow) Object.new (typeof (Gtk.ShortcutsWindow));
-                shortcuts_window.set_transient_for (this);
-                shortcuts_window.set_modal (true);
-                shortcuts_window.destroy_with_parent = true;
+            string ui = """
+            <interface>
+              <object class="GtkShortcutsWindow" id="shortcuts">
+                <property name="modal">True</property>
+                <child>
+                  <object class="GtkShortcutsSection">
+                    <child>
+                      <object class="GtkShortcutsGroup">
+                        <property name="title">General</property>
+                        <child>
+                          <object class="GtkShortcutsShortcut">
+                            <property name="title">Toggle Debug Console</property>
+                            <property name="accelerator">F11</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </interface>
+            """;
 
-                var section = (Gtk.ShortcutsSection) Object.new (typeof (Gtk.ShortcutsSection));
-                
-                var group = (Gtk.ShortcutsGroup) Object.new (typeof (Gtk.ShortcutsGroup));
-                group.title = "General";
-
-                var shortcut = (Gtk.ShortcutsShortcut) Object.new (typeof (Gtk.ShortcutsShortcut));
-                shortcut.title = "Toggle Debug Console";
-                shortcut.accelerator = "F11";
-                
-                group.append (shortcut);
-                section.append (group);
-                shortcuts_window.set_child (section);
-
-                shortcuts_window.destroy.connect (() => {
-                    shortcuts_window = null;
-                });
+            try {
+                var builder = new Gtk.Builder.from_string (ui, -1);
+                var window = (Gtk.ShortcutsWindow) builder.get_object ("shortcuts");
+                window.set_transient_for (this);
+                window.present ();
+            } catch (Error e) {
+                warning ("Could not load shortcuts UI: %s", e.message);
             }
-            
-            shortcuts_window.present ();
         }
 
         private void init_upgrades (Box container) {
