@@ -9,6 +9,12 @@ finish-args:
   - --socket=wayland
   - --device=dri
 modules:
+  - name: libadwaita
+    buildsystem: meson
+    sources:
+      - type: git
+        url: https://gitlab.gnome.org/GNOME/libadwaita.git
+        tag: '1.8.1'
   - name: vala-clicker
     buildsystem: meson
     sources:

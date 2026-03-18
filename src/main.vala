@@ -1,11 +1,11 @@
 using Gtk;
 
 namespace Clicker {
-  public class Application : Gtk.Application {
+  public class Application : Adw.Application {
     public Application () {
       Object (
         application_id: "com.github.yamada.vala-clicker",
-        flags: ApplicationFlags.FLAGS_NONE
+        flags: ApplicationFlags.DEFAULT_FLAGS
       );
     }
 

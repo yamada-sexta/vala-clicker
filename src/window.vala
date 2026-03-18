@@ -1,7 +1,8 @@
 using Gtk;
+using Adw;
 
 namespace Clicker {
-    public class Window : Gtk.ApplicationWindow {
+    public class Window : Adw.ApplicationWindow {
         private int count = 0;
         private double clicks_per_second = 0.0;
         private int click_power = 1;
@@ -10,13 +11,19 @@ namespace Clicker {
         private Label cps_label;
         private GenericArray<Upgrade> upgrades;
 
-        public Window (Gtk.Application app) {
+        public Window (Adw.Application app) {
             Object (application: app, title: "Vala Clicker");
 
             this.set_default_size (600, 400);
 
+            var toolbar_view = new Adw.ToolbarView ();
+            this.set_content (toolbar_view);
+
+            var header = new Adw.HeaderBar ();
+            toolbar_view.add_top_bar (header);
+
             var main_box = new Box (Orientation.HORIZONTAL, 0);
-            this.set_child (main_box);
+            toolbar_view.set_content (main_box);
 
             // Left panel: Clicking area
             var click_panel = new Box (Orientation.VERTICAL, 24);
@@ -28,7 +35,6 @@ namespace Clicker {
             click_panel.set_valign (Align.CENTER);
 
             count_label = new Label (count.to_string ());
-            count_label.add_css_class ("title-1");
             count_label.set_css_classes ({"title-1", "numeric"});
 
             cps_label = new Label ("0 CPS");
@@ -36,6 +42,7 @@ namespace Clicker {
 
             var click_button = new Button.with_label ("Click Me!");
             click_button.add_css_class ("suggested-action");
+            click_button.add_css_class ("pill");
             click_button.set_size_request (150, 150);
             click_button.clicked.connect (on_click_clicked);
 
@@ -46,7 +53,6 @@ namespace Clicker {
             // Right panel: Upgrades
             var upgrade_panel = new Box (Orientation.VERTICAL, 12);
             upgrade_panel.width_request = 250;
-            upgrade_panel.add_css_class ("background");
             upgrade_panel.set_margin_top (12);
             upgrade_panel.set_margin_bottom (12);
             upgrade_panel.set_margin_start (12);
