@@ -77,12 +77,25 @@ namespace Clicker {
         public signal void updated ();
         public signal void leveled_up (int old_level, int new_level);
 
-        private const string SAVE_FILE = "save.ini";
+        private string save_file_path;
 
         public Progression () {
+            init_save_path ();
             init_upgrades ();
             load ();
             recalculate_stats ();
+        }
+
+        private void init_save_path () {
+            // Check if running in Flatpak
+            if (FileUtils.test ("/.flatpak-info", FileTest.EXISTS)) {
+                string data_dir = Environment.get_user_data_dir ();
+                string app_dir = Path.build_filename (data_dir, "vala-clicker");
+                save_file_path = Path.build_filename (app_dir, "save.ini");
+            } else {
+                // Local development/run
+                save_file_path = "save.ini";
+            }
         }
 
         public string get_rank_title () {
@@ -112,20 +125,24 @@ namespace Clicker {
             }
 
             try {
-                FileUtils.set_contents (SAVE_FILE, file.to_data ());
+                string dirname = Path.get_dirname (save_file_path);
+                if (dirname != "." && !FileUtils.test (dirname, FileTest.IS_DIR)) {
+                    DirUtils.create_with_parents (dirname, 0755);
+                }
+                FileUtils.set_contents (save_file_path, file.to_data ());
             } catch (Error e) {
                 stderr.printf ("Error saving game: %s\n", e.message);
             }
         }
 
         public void load () {
-            if (!FileUtils.test (SAVE_FILE, FileTest.EXISTS)) {
+            if (!FileUtils.test (save_file_path, FileTest.EXISTS)) {
                 return;
             }
 
             var file = new KeyFile ();
             try {
-                file.load_from_file (SAVE_FILE, KeyFileFlags.NONE);
+                file.load_from_file (save_file_path, KeyFileFlags.NONE);
                 count = file.get_double ("Player", "count");
                 total_clicks_ever = file.get_double ("Player", "total_clicks_ever");
                 level = file.get_integer ("Player", "level");
