@@ -195,11 +195,11 @@ namespace Clicker {
         private void show_about () {
             var about = new Adw.AboutDialog () {
                 application_name = "Vala Clicker",
-                developer_name = "Yamada",
+                developer_name = "Yamada Sexta",
                 license_type = Gtk.License.LGPL_3_0_ONLY,
                 comments = "A clicker game built with Vala and Libadwaita.",
                 website = "https://github.com/yamada-sexta/vala-clicker",
-                copyright = "© 2026 Yamada",
+                copyright = "© 2026 Yamada Sexta",
                 application_icon = "com.github.yamada.vala-clicker"
             };
             about.present (this);

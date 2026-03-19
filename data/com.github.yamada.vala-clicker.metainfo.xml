@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.github.yamada.vala-clicker</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LGPL-3.0-or-later</project_license>
+  <name>Vala Clicker</name>
+  <summary>A simple clicker game made with Vala</summary>
+  <description>
+    <p>
+      Vala Clicker is a simple and addictive game built using the Vala programming language and GNOME technologies.
+      Click your way through levels, earn XP, and unlock milestones!
+    </p>
+  </description>
+  <launchable type="desktop-id">com.github.yamada.vala-clicker.desktop</launchable>
+  <screenshots>
+      <!-- screenshots should be added when a stable URL for them exists -->
+  </screenshots>
+  <developer_name>Yamada Sexta</developer_name>
+  <url type="homepage">https://github.com/yamada-sexta/vala-clicker</url>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2026-03-18" />
+  </releases>
+</component>

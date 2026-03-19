@@ -13,4 +13,8 @@ install_data('data/com.github.yamada.vala-clicker.svg',
   install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'scalable' / 'apps'
 )
 
+install_data('data/com.github.yamada.vala-clicker.metainfo.xml',
+  install_dir: get_option('datadir') / 'metainfo'
+)
+
 subdir('src')
